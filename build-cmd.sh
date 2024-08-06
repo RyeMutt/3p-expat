@@ -29,7 +29,7 @@ mkdir -p $top
 mkdir -p $build
 mkdir -p $stage/LICENSES
 
-cmake_flags="${CMAKE_FLAGS:--DEXPAT_SHARED_LIBS=OFF -DEXPAT_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=Release}"
+cmake_flags="${CMAKE_FLAGS:--DEXPAT_SHARED_LIBS=OFF -DEXPAT_BUILD_TOOLS=OFF -DEXPAT_BUILD_EXAMPLES=OFF -DCMAKE_BUILD_TYPE=Release}"
 
 pushd $build
     case "$AUTOBUILD_PLATFORM" in
@@ -38,10 +38,13 @@ pushd $build
             load_vsvars
             set -x
 
-            cmake $(cygpath -w $src) -G"NMake Makefiles" $cmake_flags -DCMAKE_INSTALL_PREFIX=$(cygpath -w $stage) -DEXPAT_MSVC_STATIC_CRT=ON
-            nmake
-            nmake test
-            nmake install
+            cmake $(cygpath -w $src) -G"Ninja Multi-Config" $cmake_flags -DCMAKE_INSTALL_PREFIX=$(cygpath -w $stage) -DEXPAT_MSVC_STATIC_CRT=OFF
+            cmake --build . --config Release
+            if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
+                ctest -C Release
+            fi
+
+            cmake --install . --config Release
 
             mkdir -p "$stage/lib/release"
             mv $stage/lib/*.lib "$stage/lib/release/"
@@ -56,20 +59,26 @@ pushd $build
             export CXX="clang++"
             export PREFIX="$stage"
 
-            cmake $src $cmake_flags -DCMAKE_INSTALL_PREFIX=$stage
-            make -j$AUTOBUILD_CPU_COUNT
-            make test
-            make install
+            cmake $src -G "Ninja Multi-Config" $cmake_flags -DCMAKE_INSTALL_PREFIX=$stage
+            cmake --build . --config Release
+            if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
+                ctest -C Release
+            fi
+
+            cmake --install . --config Release
 
             mkdir -p "$stage/lib/release"
             mv $stage/lib/*.a "$stage/lib/release/"
         ;;
         linux*)
             export CFLAGS=$(remove_cxxstd $LL_BUILD_RELEASE)
-            cmake $src $cmake_flags -DCMAKE_INSTALL_PREFIX=$stage
-            make -j$AUTOBUILD_CPU_COUNT
-            make test
-            make install
+            cmake $src -G "Ninja" $cmake_flags -DCMAKE_INSTALL_PREFIX=$stage -DCMAKE_BUILD_TYPE=Release
+            cmake --build . --config Release
+            if [ "${DISABLE_UNIT_TESTS:-0}" = "0" ]; then
+                ctest -C Release
+            fi
+
+            cmake --install . --config Release
 
             mkdir -p "$stage/lib/release"
             mv $stage/lib/*.a "$stage/lib/release/"
