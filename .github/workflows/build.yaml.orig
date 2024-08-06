@@ -9,9 +9,10 @@ jobs:
     strategy:
       matrix:
         os: [windows-2022, macos-12, ubuntu-22.04]
-        addrsize: ["64"]
     runs-on: ${{ matrix.os }}
     steps:
+<<<<<<< HEAD
+=======
       - name: Setup Homebrew Packages
         if: ${{ runner.os == 'macOS' }}
         shell: bash
@@ -22,9 +23,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get -y install ninja-build
+>>>>>>> c3b6428 (build: Rework build scripts to better utilize native cmake features)
       - uses: secondlife/action-autobuild@v4
-        with:
-          addrsize: ${{ matrix.addrsize }}
   release:
     needs: build
     runs-on: [ubuntu-latest]
